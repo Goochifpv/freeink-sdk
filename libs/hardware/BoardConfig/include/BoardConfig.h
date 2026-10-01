@@ -78,14 +78,17 @@
 #ifndef FREEINK_DEVICE_WS397
 #define FREEINK_DEVICE_WS397 0
 #endif
+#ifndef FREEINK_DEVICE_POCKETTEST
+#define FREEINK_DEVICE_POCKETTEST 0
+#endif
 
 // --- 2) Coherence: exactly one MCU family, at least one device ---------------
 #if !(FREEINK_DEVICE_X4 || FREEINK_DEVICE_X3 || FREEINK_DEVICE_X4PRO || FREEINK_DEVICE_X4CLASSIC || FREEINK_DEVICE_M5 || \
       FREEINK_DEVICE_MURPHY || FREEINK_DEVICE_DELINK || FREEINK_DEVICE_LILYGO || FREEINK_DEVICE_M5PAPER ||               \
       FREEINK_DEVICE_STICKY || FREEINK_DEVICE_PAPERMONO || FREEINK_DEVICE_PAPERS3 || FREEINK_DEVICE_MURPHY_M4 ||         \
-      FREEINK_DEVICE_EEGO_A4 || FREEINK_DEVICE_ONEPAGE || FREEINK_DEVICE_WS397)
+      FREEINK_DEVICE_EEGO_A4 || FREEINK_DEVICE_ONEPAGE || FREEINK_DEVICE_WS397 || FREEINK_DEVICE_POCKETTEST)
 #error \
-    "FreeInk: no device selected. Pass at least one -DFREEINK_DEVICE_<NAME> (X4, X3, X4PRO, X4CLASSIC, M5, MURPHY, DELINK, LILYGO, M5PAPER, STICKY, PAPERMONO, PAPERS3, MURPHY_M4, EEGO_A4, ONEPAGE, WS397) in your build env — see platformio.sample.ini."
+    "FreeInk: no device selected. Pass at least one -DFREEINK_DEVICE_<NAME> (X4, X3, X4PRO, X4CLASSIC, M5, MURPHY, DELINK, LILYGO, M5PAPER, STICKY, PAPERMONO, PAPERS3, MURPHY_M4, EEGO_A4, ONEPAGE, WS397, POCKETTEST) in your build env — see platformio.sample.ini."
 #endif
 // Each device belongs to one MCU family; a binary targets exactly one. X3/X4 are
 // ESP32-C3; M5 PaperColor/Murphy/de-link/LilyGo are ESP32-S3; M5Paper v1.1 is the
@@ -96,7 +99,8 @@
 #define FREEINK_MCU_S3                                                                                    \
   (FREEINK_DEVICE_M5 || FREEINK_DEVICE_MURPHY || FREEINK_DEVICE_DELINK || FREEINK_DEVICE_LILYGO ||        \
    FREEINK_DEVICE_STICKY || FREEINK_DEVICE_X4PRO || FREEINK_DEVICE_X4CLASSIC || FREEINK_DEVICE_PAPERMONO ||  \
-   FREEINK_DEVICE_PAPERS3 || FREEINK_DEVICE_MURPHY_M4 || FREEINK_DEVICE_EEGO_A4 || FREEINK_DEVICE_WS397)
+   FREEINK_DEVICE_PAPERS3 || FREEINK_DEVICE_MURPHY_M4 || FREEINK_DEVICE_EEGO_A4 || FREEINK_DEVICE_WS397 || \
+   FREEINK_DEVICE_POCKETTEST)
 #define FREEINK_MCU_ESP32 (FREEINK_DEVICE_M5PAPER)
 #if (FREEINK_MCU_C3 + FREEINK_MCU_C61 + FREEINK_MCU_S3 + FREEINK_MCU_ESP32) != 1
 #error \
@@ -111,7 +115,8 @@
 // use SSD1677, UC8179, or UC8279, recovered from OEM firmware and hardware
 // references — see docs/xteink-x4pro-support.md.
 #if FREEINK_DEVICE_X4 || FREEINK_DEVICE_DELINK || FREEINK_DEVICE_STICKY || FREEINK_DEVICE_X4PRO || \
-    FREEINK_DEVICE_X4CLASSIC || FREEINK_DEVICE_MURPHY_M4 || FREEINK_DEVICE_ONEPAGE || FREEINK_DEVICE_WS397
+    FREEINK_DEVICE_X4CLASSIC || FREEINK_DEVICE_MURPHY_M4 || FREEINK_DEVICE_ONEPAGE || FREEINK_DEVICE_WS397 || \
+    FREEINK_DEVICE_POCKETTEST
 #define FREEINK_DRIVER_SSD1677 1
 #else
 #define FREEINK_DRIVER_SSD1677 0
@@ -263,7 +268,7 @@
 #ifndef FREEINK_BATTERY_I2C_GAUGE
 #define FREEINK_BATTERY_I2C_GAUGE                                                            \
   (FREEINK_DEVICE_X3 || FREEINK_DEVICE_LILYGO || FREEINK_DEVICE_STICKY || FREEINK_DEVICE_X4PRO || \
-   FREEINK_DEVICE_X4CLASSIC || FREEINK_DEVICE_WS397)
+      FREEINK_DEVICE_X4CLASSIC || FREEINK_DEVICE_WS397 || FREEINK_DEVICE_POCKETTEST)
 #endif
 #ifndef FREEINK_CAP_COLOR
 #define FREEINK_CAP_COLOR (FREEINK_DEVICE_M5)
@@ -283,7 +288,7 @@
 #define FREEINK_CAP_RTC                                                                             \
   (FREEINK_DEVICE_X3 || FREEINK_DEVICE_STICKY || FREEINK_DEVICE_X4PRO || FREEINK_DEVICE_X4CLASSIC || \
    FREEINK_DEVICE_PAPERMONO || FREEINK_DEVICE_PAPERS3 || FREEINK_DEVICE_LILYGO || FREEINK_DEVICE_EEGO_A4 || \
-   FREEINK_DEVICE_WS397)
+   FREEINK_DEVICE_WS397 || FREEINK_DEVICE_POCKETTEST)
 #endif
 #ifndef FREEINK_CAP_TEMP_HUMIDITY
 #define FREEINK_CAP_TEMP_HUMIDITY (FREEINK_DEVICE_STICKY)
@@ -387,6 +392,7 @@ enum class Board : uint8_t {
   EegoA4,     // EEGO Reader A4: ESP32-S3, UC8279C 768x552 SPI panel, GSLX680 touch, PCF8563 RTC
   OnePage,    // OnePage: ESP32-C61, SSD1677 800x480 SPI panel, 4-key ADC ladder + 3 side keys
   WsEpaper397,  // Waveshare ESP32-S3-ePaper-3.97: SSD1677 800x480, 3 keys + BOOT, AXP2101 PMIC
+  PocketTestbed,  // Pocket Reader development rig: ESP32-S3 N16R8 + Waveshare 3.97in HAT+
 };
 
 // How the board reports button presses.
@@ -482,7 +488,7 @@ struct SdmmcPins {
 // profile loaded before it reports a valid SoC (Xteink X4 Pro).
 // Axp2101: not a gauge chip but a PMIC whose fuel-gauge block reports SoC directly
 // (Waveshare ESP32-S3-ePaper-3.97). Its registers live in Axp2101.h.
-enum class GaugeType : uint8_t { Bq27220, Cw2017, Axp2101 };
+enum class GaugeType : uint8_t { Bq27220, Cw2017, Axp2101, Max17048 };
 
 // I2C fuel-gauge / charger wiring (e.g. BQ27220 + BQ25896 on LilyGo T5 S3). When
 // gaugeAddr != 0 (and FREEINK_BATTERY_I2C_GAUGE is set), BatteryMonitor reads the
@@ -1483,6 +1489,56 @@ constexpr BoardProfile STICKY = {
     // (~0.06 A USB input awake vs ~0.5 A once sleep isolates the pad).
     {45, 46, 39, false}};
 
+// --- Pocket Reader test bed — ESP32-S3 N16R8 + Waveshare 3.97" HAT+ -----------
+// Minimal bring-up profile for the G00-CH1 development rig.
+//
+// Display wiring (HAT+ 9-pin header):
+//   PWR=17 BUSY=18 RST=8 DC=9 CS=10 SCLK=12 DIN/MOSI=11
+//
+// Initial button mapping:
+//   front bank GPIO4/5/6/7 -> BACK/CONFIRM/LEFT/RIGHT
+//   first side pair GPIO1/2 -> UP/DOWN
+//   GPIO42/41 are the second side pair and are intentionally left out of this
+//   first profile because BoardConfig::InputPins currently models only one
+//   UP/DOWN pair. They will be added when the Pocket Reader dual-side input
+//   extension lands.
+//
+// SD, RTC, IMU, fuel gauge, Hall sensor, power button and frontlight test driver
+// are added incrementally after basic display/button bring-up.
+constexpr BoardProfile POCKET_TESTBED = {
+    Board::PocketTestbed,
+    "pocket_testbed",
+    InputStyle::DigitalButtons,
+    DisplayController::SSD1677,
+    800,
+    480,
+    // {SCLK, MOSI, CS, DC, RST, BUSY, powerEnable}
+    {12, 11, 10, 9, 8, 18, 17},
+    10000000,  // conservative bring-up clock; raise after validation
+   // SD over SPI, sharing SCLK/MOSI with the e-paper display.
+  {12, 13, 11, 14, PIN_UNASSIGNED, false, 10000000},
+    // {back, confirm, left, right, up, down, power, powerActiveHigh}
+    {4, 5, 6, 7, 1, 2, PIN_UNASSIGNED, false},
+    PIN_UNASSIGNED,  // batteryAdc
+    PIN_UNASSIGNED,  // batteryChargeStatus
+    2.0f,
+    PIN_UNASSIGNED,  // usbDetect
+    NO_TOUCH,
+    NO_FRONTLIGHT,
+    NO_AUDIO,
+    NO_LEDS,
+    NO_FLIP,
+    NO_SDMMC,
+    {39, 40, 100000, 0x36, 0, 0, GaugeType::Max17048},
+    NO_MIC,
+    // I2C: SDA=39, SCL=40. PCF8563 RTC at 0x51.
+    {39, 40, 100000, 0x51, 0, 0, 0, RtcType::Pcf8563, ImuType::None},
+    1.0f,
+    {},
+    0,
+    {0, 0, 0, 0},
+    false};
+
 // --- Waveshare ESP32-S3-ePaper-3.97 — ESP32-S3-WROOM-1-N16R8, SSD1677 800x480 --
 // Pins come from the vendor demo sources (waveshareteam/ESP32-S3-ePaper-3.97):
 // Arduino/examples DEV_Config.h + 05_SD_Test, and ESP-IDF/08_.../components
@@ -1828,12 +1884,15 @@ constexpr uint32_t MAX_FRAMEBUFFER_BYTES = cmax(
                         FREEINK_DEVICE_MURPHY_M4 ? panelBytes(MURPHY_M4) : 0u),
                    cmax(cmax(FREEINK_DEVICE_EEGO_A4 ? panelBytes(EEGO_A4) : 0u,
                              FREEINK_DEVICE_ONEPAGE ? panelBytes(ONEPAGE) : 0u),
-                        FREEINK_DEVICE_WS397 ? panelBytes(WS_EPAPER_397) : 0u)))));
+                        cmax(FREEINK_DEVICE_WS397 ? panelBytes(WS_EPAPER_397) : 0u,
+                             FREEINK_DEVICE_POCKETTEST ? panelBytes(POCKET_TESTBED) : 0u))))));
 
 // Compile-time default device — the profile ACTIVE starts as. With a single
 // device in the build this is the only device; with several same-MCU devices it
 // is the boot default until the consumer calls selectDevice().
-#if FREEINK_DEVICE_WS397
+#if FREEINK_DEVICE_POCKETTEST
+constexpr BoardProfile DEFAULT_DEVICE = POCKET_TESTBED;
+#elif FREEINK_DEVICE_WS397
 constexpr BoardProfile DEFAULT_DEVICE = WS_EPAPER_397;
 #elif FREEINK_DEVICE_ONEPAGE
 constexpr BoardProfile DEFAULT_DEVICE = ONEPAGE;
@@ -1958,6 +2017,11 @@ inline bool selectDevice(Board which) {
       ACTIVE = ONEPAGE;
       break;
 #endif
+#if FREEINK_DEVICE_POCKETTEST
+    case Board::PocketTestbed:
+      ACTIVE = POCKET_TESTBED;
+      break;
+#endif
 #if FREEINK_DEVICE_WS397
     case Board::WsEpaper397:
       ACTIVE = WS_EPAPER_397;
@@ -1986,6 +2050,7 @@ inline bool isPaperMono() { return ACTIVE.board == Board::PaperMono; }
 inline bool isEegoA4() { return ACTIVE.board == Board::EegoA4; }
 inline bool isOnePage() { return ACTIVE.board == Board::OnePage; }
 inline bool isWsEpaper397() { return ACTIVE.board == Board::WsEpaper397; }
+inline bool isPocketTestbed() { return ACTIVE.board == Board::PocketTestbed; }
 inline bool hasTouch() { return ACTIVE.touch.controller != TouchController::None; }
 inline bool hasHomeKey() { return ACTIVE.touch.hasHomeKey; }
 inline bool hasPwmFrontlight() { return ACTIVE.frontlight.gpio != PIN_UNASSIGNED || ACTIVE.frontlight.viaPm1Pwm; }

@@ -26,6 +26,8 @@ constexpr uint8_t BQ27220_VOLTAGE = 0x08;          // battery voltage, mV (u16 L
 constexpr uint8_t BQ27220_CURRENT = 0x0C;          // average current, signed mA (i16 LE)
 constexpr uint8_t BQ27220_STATE_OF_CHARGE = 0x2C;  // SoC, percent (u16 LE)
 constexpr uint8_t BQ25896_REG_STATUS = 0x0B;       // CHRG_STAT in bits [4:3]
+constexpr uint8_t MAX17048_VCELL = 0x02;
+constexpr uint8_t MAX17048_SOC = 0x04;
 
 // The gauge's I2C controller (Wire or Wire1) per BoardConfig. On single-bus SoCs
 // (ESP32-C3, SOC_I2C_NUM == 1) Wire1 doesn't exist, so always use Wire there.
@@ -208,6 +210,7 @@ bool cw2017EnsureProfile(const uint8_t addr) {
 // SoC (0..100) from the active gauge, dispatched by type. false on I2C failure.
 bool readGaugeSoc(uint16_t& out) {
   const auto& g = BoardConfig::ACTIVE.batteryGauge;
+
 #if FREEINK_DEVICE_WS397
   if (g.gaugeType == BoardConfig::GaugeType::Axp2101) {
     uint8_t soc = 0;
@@ -216,26 +219,56 @@ bool readGaugeSoc(uint16_t& out) {
     return true;
   }
 #endif
+
+  if (g.gaugeType == BoardConfig::GaugeType::Max17048) {
+    uint8_t hi = 0, lo = 0;
+
+    if (!readReg8(g.gaugeAddr, MAX17048_SOC, hi)) return false;
+    if (!readReg8(
+            g.gaugeAddr,
+            static_cast<uint8_t>(MAX17048_SOC + 1),
+            lo))
+      return false;
+
+    const uint16_t raw =
+        (static_cast<uint16_t>(hi) << 8) | lo;
+
+    uint16_t percent =
+        static_cast<uint16_t>((raw + 128) >> 8);
+
+    if (percent > 100) percent = 100;
+
+    out = percent;
+    return true;
+  }
+
   if (g.gaugeType == BoardConfig::GaugeType::Cw2017) {
     static bool initialized = false;
     static unsigned long lastInitAttemptMs = 0;
 
     const unsigned long now = millis();
+
     if (!initialized) {
-      if (lastInitAttemptMs != 0 && (now - lastInitAttemptMs) < CW2017_INIT_RETRY_MS) return false;
+      if (lastInitAttemptMs != 0 &&
+          (now - lastInitAttemptMs) < CW2017_INIT_RETRY_MS)
+        return false;
+
       lastInitAttemptMs = now;
       initialized = cw2017EnsureProfile(g.gaugeAddr);
+
       if (!initialized) return false;
     }
 
-    // Do not treat an acknowledged but sleeping/not-ready gauge as a fresh SoC
-    // source. Clearing initialized makes the next call run the bounded recovery.
     uint8_t mode = 0;
     uint8_t version = 0;
     uint8_t soc = 0;
-    if (!readReg8(g.gaugeAddr, CW2017_REG_MODE, mode) || mode != CW2017_MODE_NORMAL ||
-        !readReg8(g.gaugeAddr, CW2017_REG_VERSION, version) || !cw2017VersionIsRunning(version) ||
-        !readReg8(g.gaugeAddr, CW2017_REG_SOC, soc) || soc > 100) {
+
+    if (!readReg8(g.gaugeAddr, CW2017_REG_MODE, mode) ||
+        mode != CW2017_MODE_NORMAL ||
+        !readReg8(g.gaugeAddr, CW2017_REG_VERSION, version) ||
+        !cw2017VersionIsRunning(version) ||
+        !readReg8(g.gaugeAddr, CW2017_REG_SOC, soc) ||
+        soc > 100) {
       initialized = false;
       return false;
     }
@@ -243,11 +276,19 @@ bool readGaugeSoc(uint16_t& out) {
     out = soc;
     return true;
   }
+
   uint16_t soc = 0;
-  if (!readReg16(g.gaugeAddr, BQ27220_STATE_OF_CHARGE, soc)) return false;
+
+  if (!readReg16(
+          g.gaugeAddr,
+          BQ27220_STATE_OF_CHARGE,
+          soc))
+    return false;
+
   out = soc > 100 ? 100 : soc;
   return true;
 }
+
 
 // Battery voltage (mV) from the active gauge, dispatched by type. false on failure.
 bool readGaugeMillivolts(uint16_t& out) {
@@ -263,7 +304,18 @@ bool readGaugeMillivolts(uint16_t& out) {
     out = static_cast<uint16_t>((raw14 * 5 + 8) >> 4);  // OEM formula (~0.3125 mV/LSB, rounded)
     return true;
   }
-  uint16_t mv = 0;
+   if (g.gaugeType == BoardConfig::GaugeType::Max17048) {
+    uint8_t hi = 0, lo = 0;
+    if (!readReg8(g.gaugeAddr, MAX17048_VCELL, hi)) return false;
+    if (!readReg8(g.gaugeAddr, static_cast<uint8_t>(MAX17048_VCELL + 1), lo)) return false;
+
+    const uint16_t raw = (static_cast<uint16_t>(hi) << 8) | lo;
+    const uint16_t counts = raw >> 4;
+
+    out = static_cast<uint16_t>((counts * 5 + 2) / 4);
+    return true;
+  }
+   uint16_t mv = 0;
   if (!readReg16(g.gaugeAddr, BQ27220_VOLTAGE, mv)) return false;
   out = mv;
   return true;
@@ -287,7 +339,8 @@ bool readGaugeCharging(bool& known) {
 #endif
   // CW2017 has no current register and the X4 Pro has no charger IC on this bus, so
   // charging state is not observable from the gauge (the OEM infers it elsewhere).
-  if (g.gaugeType == BoardConfig::GaugeType::Cw2017) {
+ if (g.gaugeType == BoardConfig::GaugeType::Cw2017 ||
+    g.gaugeType == BoardConfig::GaugeType::Max17048) {
     known = false;
     return false;
   }
